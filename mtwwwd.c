@@ -31,6 +31,10 @@ int main() {
     // IPV4
     sockfd = socket(PF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) error("Error opening socket");
+
+    // Socket-option for easier reusing of port
+    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &(int){1}, sizeof(int)) < 0)
+        error("setsockopt(SO_REUSEADDR) failed");
     
     // Tar opp plass i minnet og setter verdien til 0 
     bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -53,17 +57,26 @@ int main() {
     listen(sockfd, 1);
 
     while(1){
+        bzero(buffer,sizeof(buffer));
+
         clilen = sizeof(cli_addr);
         connectsockfd = accept (sockfd, (struct sockaddr *) &cli_addr,
             &clilen);
-        n = read (connectsockfd,buffer,sizeof(buffer)-1);
+
         if (connectsockfd < 0) error("ERROR on accept");
-            bzero(buffer,sizeof(buffer));
+        n = read (connectsockfd,buffer,sizeof(buffer)-1);
+
+        int *phc;
+        phc = strtok(buffer," "); // Cycling through GET
+        phc = strtok(NULL," "); // phc is now the given URL
+
         snprintf (body, sizeof (body),
             "<html>\n<body>\n"
             "<h1>Hello web browser</h1>\nYour request was\n"
-            "<pre>%s</pre>\n"
-            "</body>\n</html>\n", buffer);
+            "<pre>%s</pre>\n\n\n"
+            "Your URL was\n"
+            "<pre>%s</pre>"
+            "</body>\n</html>\n", buffer, phc);
         
         snprintf (msg, sizeof (msg),
             "HTTP/1.0 200 OK\n"
