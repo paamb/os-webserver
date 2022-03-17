@@ -12,7 +12,7 @@
 #define MAXREQ (4096 * 1024)
 
 // Oppretter max lengde paa buffrene
-char buffer[MAXREQ], body[MAXREQ], msg[MAXREQ], fpbuffer[MAXREQ];
+char request_buffer[MAXREQ], msg[MAXREQ], body_buffer[MAXREQ];
 void error(const char *msg)
 {
     perror(msg);
@@ -34,6 +34,7 @@ void assign_absolutPath(char *absolutePath, char dirPath[], char webpagePath[])
     // return absolutePath;
 }
 
+// Kopiert fra stackoverflow
 void func()
 {
     char cwd[200];
@@ -49,14 +50,18 @@ void func()
 
 int main()
 {
-    char dirPath[60];
+    char dirPathArr[60];
+    char *dirPath;
     int port[10];
     FILE *fp;
-
+    char *absolute_path;
+    // memset(absolute_path, '\0', sizeof(dirPathArr) + 50);
     // Finds current directory
     func();
     printf("Skriv inn path ");
-    scanf("%59s", dirPath);
+    scanf("%59s", dirPathArr);
+
+    dirPath = dirPathArr;
 
     // Sockfd - Socketen som blir opprettet
     int sockfd, connectsockfd;
@@ -102,68 +107,91 @@ int main()
     {
         // Finds current directory
         func();
-        bzero(buffer, sizeof(buffer));
+        bzero(request_buffer, sizeof(request_buffer));
 
         clilen = sizeof(cli_addr);
         connectsockfd = accept(sockfd, (struct sockaddr *)&cli_addr,
                                &clilen);
-
+        printf("\nfeil i toppen?");
         if (connectsockfd < 0)
             error("ERROR on accept");
-        n = read(connectsockfd, buffer, sizeof(buffer) - 1);
-
+        n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
+        printf("\nfeeeeeeeeil");
         // printf("%s", buffer);
         // char *test;
         // test = strtok(buffer, "/");
-        char *phc;
+        printf("%s", request_buffer);
 
-        phc = strtok(buffer, " "); // Cycling through GET
+
+        // Denne bør gjøres litt bedre. Skal ikke alltid endres. "malloc-koden" under blir stygg.
+        char *phc;
+        phc = strtok(request_buffer, " "); // Cycling through GET
         phc = strtok(NULL, " ");   // phc is now the given URL
         // char webpagePath[30];
         printf("Ikke feil forst i main");
-
         // const peker direkte til stringen
 
         // Oppretter en absolutt path dirPath + url path.
-        char *absolutePath;
-        absolutePath = malloc(strlen(dirPath) + strlen(phc) + 1);
-        strcpy(absolutePath, dirPath);
-        strcat(absolutePath, phc);
-        printf("%s", absolutePath);
+        // if (strcmp(phc, "/index.html") == 0){
+        
+        // bzero(absolute_path,strlen(dirPath) + strlen(phc) + 1);
+        
+        printf("\n\n\n%s", phc);
+        printf("%s\n\n\n", dirPath);
+
+        // Kjørte requests innimellom og da var phc null. Fikk derfor segfault naar man prøvde aa malloc noe med lengde null.
+        if(phc != NULL){
+            free(absolute_path);
+            absolute_path = malloc(strlen(dirPath) + strlen(phc) + 1);
+            strcpy(absolute_path, &(*dirPath));
+            strcat(absolute_path, &(*phc));
+        }
+
+        printf("%s", absolute_path);
+
+        printf("andre gang %s", absolute_path);
+        FILE *fp;
+        fp = fopen(absolute_path, "r");
+        if (fp == NULL)
+        {
+            fp = fopen("404response.html", "r");
+            fread(body_buffer, sizeof(int), MAXREQ, fp);
+            fclose(fp);
+        }
+        else{
+            fread(body_buffer, sizeof(int), MAXREQ, fp);
+            fclose(fp);
+            printf("%s", body_buffer);
+
+            // Printer filen til webpage
+            // snprintf(body, sizeof(body), fpbuffer);
+
+
+        }
+
+        snprintf(msg, sizeof(msg),
+        "HTTP/0.9 200 OK\n"
+        "Content-Type: text/html\n"
+        "Content-Length: %d\n\n%s",
+        strlen(body_buffer), body_buffer);
+
+        n = write(connectsockfd, msg, strlen(msg));
+        if (n < 0)
+            error("ERROR writing to socket");
+        close(connectsockfd);
+        printf("Yo kom gjennom hele jo uten å få en eneste segmentation fault jævel");
+        // }
+        
 
         // assign_absolutPath(absolutePath, dirPath, phc);
 
-        printf("andre gang %s", absolutePath);
-        FILE *fp;
-        fp = fopen(absolutePath, "r");
-        if (fp == NULL)
-        {
-            printf("fil kunne ikke aapnes");
-        }
+
+
 
         // if (fp = fopen(absolutePath, "r") == NULL)
         // {
         //     printf("Fil kunne ikke aapnes");
         // }
 
-        fread(fpbuffer, sizeof(int), MAXREQ, fp);
-        fclose(fp);
-        printf("%s", fpbuffer);
-
-        // Printer filen til webpage
-        snprintf(body, sizeof(body), fpbuffer);
-
-        snprintf(msg, sizeof(msg),
-                 "HTTP/1.0 200 OK\n"
-                 "Content-Type: text/html\n"
-                 "Content-Length: %d\n\n%s",
-                 strlen(body), body);
-
-        n = write(connectsockfd, msg, strlen(msg));
-        if (n < 0)
-            error("ERROR writing to socket");
-
-        close(connectsockfd);
-        printf("Yo kom gjennom hele jo uten å få en eneste segmentation fault jævel");
     }
 }
