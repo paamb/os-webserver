@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
-#define PORT 8000
+#define DEFAULT_PORT 8000
 #define MAXREQ (4096 * 1024)
 
 // Oppretter max lengde paa buffrene
@@ -30,12 +30,12 @@ void assign_absolutPath(char *absolutePath, char dirPath[], char webpagePath[])
 
     // FILE *fp;
     // fp = fopen(absolutePath, "r");
-    printf("Ikke feil HER \n\n\n");
+    // printf("Ikke feil HER \n\n\n");
     // return absolutePath;
 }
 
 // Kopiert fra stackoverflow
-void func()
+void display_directory_path()
 {
     char cwd[200];
     if (getcwd(cwd, sizeof(cwd)) != NULL)
@@ -48,20 +48,36 @@ void func()
     }
 }
 
-int main()
-{
-    char dirPathArr[60];
-    char *dirPath;
-    int port[10];
+void read_file(char *absolute_path, char *body_buffer){
     FILE *fp;
-    char *absolute_path;
-    // memset(absolute_path, '\0', sizeof(dirPathArr) + 50);
-    // Finds current directory
-    func();
-    printf("Skriv inn path ");
-    scanf("%59s", dirPathArr);
+    fp = fopen(absolute_path, "r");
+    if (fp == NULL)
+    {
+        // fclose(fp);
+        fp = fopen("404response.html", "r");
+        fread(body_buffer, sizeof(int), MAXREQ, fp);
+        fclose(fp);
+    }
+    else{
+        fread(body_buffer, sizeof(int), MAXREQ, fp);
+        fclose(fp);
+        // printf("%s", body_buffer);
+    }
+    printf("Ny fil vises");
+    // printf("\n\n\n%s", body_buffer);
+}
 
-    dirPath = dirPathArr;
+int main(int argc, char *argv[])
+{
+    char *dirPath = argv[1];
+    int port = atoi(argv[2]);
+    char *absolute_path;
+
+    printf("Running in directory: %s\n %d", dirPath, port);
+    // printf("Running on port: %s", argv[2]);
+
+    // Finds current directory
+    // display_directory_path();
 
     // Sockfd - Socketen som blir opprettet
     int sockfd, connectsockfd;
@@ -92,7 +108,7 @@ int main()
     serv_addr.sin_addr.s_addr = INADDR_ANY;
 
     // Hosten sitt portnummer, definert i toppen
-    serv_addr.sin_port = htons(PORT);
+    serv_addr.sin_port = htons(port);
 
     // Binder
     if (bind(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
@@ -106,69 +122,30 @@ int main()
     while (1)
     {
         // Finds current directory
-        func();
         bzero(request_buffer, sizeof(request_buffer));
 
         clilen = sizeof(cli_addr);
         connectsockfd = accept(sockfd, (struct sockaddr *)&cli_addr,
                                &clilen);
-        printf("\nfeil i toppen?");
         if (connectsockfd < 0)
             error("ERROR on accept");
         n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
-        printf("\nfeeeeeeeeil");
-        // printf("%s", buffer);
-        // char *test;
-        // test = strtok(buffer, "/");
-        printf("%s", request_buffer);
 
 
         // Denne bør gjøres litt bedre. Skal ikke alltid endres. "malloc-koden" under blir stygg.
         char *phc;
         phc = strtok(request_buffer, " "); // Cycling through GET
         phc = strtok(NULL, " ");   // phc is now the given URL
-        // char webpagePath[30];
-        printf("Ikke feil forst i main");
-        // const peker direkte til stringen
-
-        // Oppretter en absolutt path dirPath + url path.
-        // if (strcmp(phc, "/index.html") == 0){
-        
-        // bzero(absolute_path,strlen(dirPath) + strlen(phc) + 1);
-        
-        printf("\n\n\n%s", phc);
-        printf("%s\n\n\n", dirPath);
 
         // Kjørte requests innimellom og da var phc null. Fikk derfor segfault naar man prøvde aa malloc noe med lengde null.
         if(phc != NULL){
-            free(absolute_path);
+            // free(absolute_path);
             absolute_path = malloc(strlen(dirPath) + strlen(phc) + 1);
-            strcpy(absolute_path, &(*dirPath));
-            strcat(absolute_path, &(*phc));
+            strcpy(absolute_path, dirPath);
+            strcat(absolute_path, phc);
         }
 
-        printf("%s", absolute_path);
-
-        printf("andre gang %s", absolute_path);
-        FILE *fp;
-        fp = fopen(absolute_path, "r");
-        if (fp == NULL)
-        {
-            fp = fopen("404response.html", "r");
-            fread(body_buffer, sizeof(int), MAXREQ, fp);
-            fclose(fp);
-        }
-        else{
-            fread(body_buffer, sizeof(int), MAXREQ, fp);
-            fclose(fp);
-            printf("%s", body_buffer);
-
-            // Printer filen til webpage
-            // snprintf(body, sizeof(body), fpbuffer);
-
-
-        }
-
+        read_file(absolute_path, body_buffer);
         snprintf(msg, sizeof(msg),
         "HTTP/0.9 200 OK\n"
         "Content-Type: text/html\n"
@@ -179,19 +156,5 @@ int main()
         if (n < 0)
             error("ERROR writing to socket");
         close(connectsockfd);
-        printf("Yo kom gjennom hele jo uten å få en eneste segmentation fault jævel");
-        // }
-        
-
-        // assign_absolutPath(absolutePath, dirPath, phc);
-
-
-
-
-        // if (fp = fopen(absolutePath, "r") == NULL)
-        // {
-        //     printf("Fil kunne ikke aapnes");
-        // }
-
     }
 }
