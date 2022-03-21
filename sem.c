@@ -18,41 +18,42 @@ int counter;
 
 void P(SEM *sem)
 {
-    // printf("Halla \n");
-    if (sem->counter == 1)
-    {
-        // Bytte lock til mutex?
-        pthread_mutex_lock(&sem->lock);
+    pthread_mutex_lock(&sem->lock);
+
+    while(sem->counter <= 0) {
         pthread_cond_wait(&sem->condition, &sem->lock);
     }
-    else
-    {
-        sem->counter--;
-    }
+    sem->counter--;
+
+    pthread_mutex_unlock(&sem->lock);
 }
+
 void V(SEM *sem)
 {
-    pthread_mutex_unlock(&sem->lock);
+    pthread_mutex_lock(&sem->lock);
 
-    // Finne ut av hva condition faktisk er ?
+    printf("Sending signal\n");
     pthread_cond_signal(&sem->condition);
     sem->counter++;
+
+    pthread_mutex_unlock(&sem->lock);
 }
 
 SEM *sem_init(int initVal)
 {
-    // static SEM semaphore;
     SEM *semaphore = malloc(sizeof(struct SEM));
     semaphore->counter = initVal;
     if (pthread_mutex_init(&semaphore->lock, NULL) != 0)
     {
         printf("\n mutex init failed\n");
         sem_del(&semaphore);
+        free(semaphore);
         return NULL;
     }
     if (pthread_cond_init(&semaphore->condition, NULL) != 0)
     {
         printf("\n condition init failed\n");
+        free(semaphore);
         return NULL;
     }
 
@@ -61,14 +62,17 @@ SEM *sem_init(int initVal)
 
 int sem_del(SEM *sem)
 {
-    if (pthread_mutex_destroy(&sem->lock) == 0)
-    {
-        return 0;
+    int return_val = 0;
+
+    if (pthread_mutex_destroy(&sem->lock) != 0) {
+        return_val = -1;
     }
-    else
-    {
-        return -1;
+    if (pthread_cond_destroy(&sem->condition) != 0) {
+        return_val = -1;
     }
+
+    free(sem);
+    return return_val;
 }
 
 void *doSomething(void *args)
@@ -77,8 +81,6 @@ void *doSomething(void *args)
     arguments = (arg_struct *)args;
     P(arguments->semaphore);
     printf("Start, id: %s \n", arguments->id);
-    for (int i = 0; i < 0xFFFFFFF; i++)
-        ;
     for (int i = 0; i < 0xFFFFFFF; i++)
         ;
     printf("Finished :D, id: %s \n", arguments->id);
