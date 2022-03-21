@@ -1,3 +1,4 @@
+#include "sem.h"
 #ifndef ____BBUFFER___H___
 #define ____BBUFFER___H___
 
@@ -13,7 +14,14 @@
  * ...you need to figure out the contents of struct BNDBUF yourself
  */
 
-typedef struct BNDBUF BNDBUF;
+typedef struct BNDBUF {
+    int bb_size;
+    int write_index;
+    int read_index;
+    int *arr_pointer;
+    SEM *write_sem;
+    SEM *read_sem;
+} BNDBUF;
 
 /* Creates a new Bounded Buffer. 
  *

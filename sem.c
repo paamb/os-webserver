@@ -32,7 +32,6 @@ void V(SEM *sem)
 {
     pthread_mutex_lock(&sem->lock);
 
-    printf("Sending signal\n");
     pthread_cond_signal(&sem->condition);
     sem->counter++;
 
@@ -46,7 +45,7 @@ SEM *sem_init(int initVal)
     if (pthread_mutex_init(&semaphore->lock, NULL) != 0)
     {
         printf("\n mutex init failed\n");
-        sem_del(&semaphore);
+        sem_del(semaphore);
         free(semaphore);
         return NULL;
     }
@@ -89,24 +88,24 @@ void *doSomething(void *args)
     return NULL;
 }
 
-int main(void)
-{
-    SEM *semaphore = sem_init(2);
-    pthread_t thread_id_one, thread_id_two, thread_id_three;
+// int main(void)
+// {
+//     SEM *semaphore = sem_init(2);
+//     pthread_t thread_id_one, thread_id_two, thread_id_three;
 
-    arg_struct argsone = {.id = "1", .semaphore = semaphore};
-    arg_struct argstwo = {.id = "2", .semaphore = semaphore};
-    arg_struct argsthree = {.id = "3", .semaphore = semaphore};
+//     arg_struct argsone = {.id = "1", .semaphore = semaphore};
+//     arg_struct argstwo = {.id = "2", .semaphore = semaphore};
+//     arg_struct argsthree = {.id = "3", .semaphore = semaphore};
 
-    pthread_create(&thread_id_one, NULL, doSomething, (void *)&argsone);
-    pthread_create(&thread_id_two, NULL, doSomething, (void *)&argstwo);
-    pthread_create(&thread_id_three, NULL, doSomething, (void *)&argsthree);
+//     pthread_create(&thread_id_one, NULL, doSomething, (void *)&argsone);
+//     pthread_create(&thread_id_two, NULL, doSomething, (void *)&argstwo);
+//     pthread_create(&thread_id_three, NULL, doSomething, (void *)&argsthree);
 
-    pthread_join(thread_id_one, NULL);
-    pthread_join(thread_id_two, NULL);
-    pthread_join(thread_id_three, NULL);
+//     pthread_join(thread_id_one, NULL);
+//     pthread_join(thread_id_two, NULL);
+//     pthread_join(thread_id_three, NULL);
 
-    sem_del(semaphore);
+//     sem_del(semaphore);
 
-    return 0;
-}
+//     return 0;
+// }
