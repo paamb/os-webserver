@@ -15,6 +15,7 @@
 typedef struct SEM
 {
     pthread_mutex_t lock;
+    pthread_cond_t condition;
     int counter;
 } SEM;
 

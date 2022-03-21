@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include "sem.h"
 
+// gcc -pthread -o sem sem.c
+
 typedef struct arg_struct
 {
     char id[2];
@@ -16,9 +18,12 @@ int counter;
 
 void P(SEM *sem)
 {
+    // printf("Halla \n");
     if (sem->counter == 1)
     {
+        // Bytte lock til mutex?
         pthread_mutex_lock(&sem->lock);
+        pthread_cond_wait(&sem->condition, &sem->lock);
     }
     else
     {
@@ -28,20 +33,30 @@ void P(SEM *sem)
 void V(SEM *sem)
 {
     pthread_mutex_unlock(&sem->lock);
+
+    // Finne ut av hva condition faktisk er ?
+    pthread_cond_signal(&sem->condition);
     sem->counter++;
 }
 
 SEM *sem_init(int initVal)
 {
-    static SEM semaphore;
-    semaphore.counter = initVal;
-    if (pthread_mutex_init(&semaphore.lock, NULL) != 0)
+    // static SEM semaphore;
+    SEM *semaphore = malloc(sizeof(struct SEM));
+    semaphore->counter = initVal;
+    if (pthread_mutex_init(&semaphore->lock, NULL) != 0)
     {
         printf("\n mutex init failed\n");
         sem_del(&semaphore);
         return NULL;
     }
-    return &semaphore;
+    if (pthread_cond_init(&semaphore->condition, NULL) != 0)
+    {
+        printf("\n condition init failed\n");
+        return NULL;
+    }
+
+    return semaphore;
 }
 
 int sem_del(SEM *sem)
