@@ -42,9 +42,8 @@ BNDBUF *bb_init(unsigned int size){
     BNDBUF *buffer = malloc(sizeof(struct BNDBUF));
     SEM *write_sem = sem_init(size);
     SEM *read_sem = sem_init(0);
-    int arr[size+1];
     buffer->bb_size = size;
-    buffer->arr_pointer = arr;
+    buffer->arr_pointer = (int*) malloc(size * sizeof(int));
     buffer->write_index = -1;
     buffer->read_index = 0;
     buffer->write_sem = write_sem;
