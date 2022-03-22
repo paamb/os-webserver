@@ -19,20 +19,19 @@ int bb_get(BNDBUF *bb){
     P(bb->read_sem);
     // printf("bb->read_sem: %p, bb->write_sem: %p\n", bb->read_sem, bb->write_sem);
     printf("READ bb->arrpointer: %p, bb->read_index: %d, bb->bb_size: %d, mod_read: %d, mod_write: %d\n", bb->arr_pointer, bb->read_index, bb->bb_size, ((bb->read_index) % bb->bb_size), ((bb->write_index) % bb->bb_size));
-    // bb->read_index = ((bb->read_index + 1) % bb->bb_size);
     
-    int read_val = bb->arr_pointer[((bb->read_index++) % bb->bb_size)];
+    // ((bb->read_index++) % bb->bb_size)
+    int read_val = bb->arr_pointer[bb->read_index];
+    bb->read_index = ((bb->read_index + 1) % bb->bb_size);
     V(bb->write_sem);
     return read_val;
 }
 
 void bb_add(BNDBUF *bb, int fd){
     P(bb->write_sem);
-    printf("WRITE bb->arrpointer: %p, bb->read_index: %d, bb->bb_size: %d, mod_read: %d, mod_write: %d\n", bb->arr_pointer, bb->read_index, bb->bb_size, ((bb->read_index) % bb->bb_size), ((bb->write_index) % bb->bb_size));
-    // printf("Writing value \n");
+    printf("WRITE bb->arrpointer: %p, bb->write_index: %i, bb->read_index: %d, bb->bb_size: %d, mod_read: %d, mod_write: %d\n", bb->arr_pointer, bb->write_index, bb->read_index, bb->bb_size, ((bb->read_index) % bb->bb_size), ((bb->write_index) % bb->bb_size));
     bb->write_index = ((bb->write_index + 1) % bb->bb_size);
     printf("WRITE2 bb->arrpointer: %p, bb->read_index: %d, bb->bb_size: %d, mod_read: %d, mod_write: %d\n", bb->arr_pointer, bb->read_index, bb->bb_size, ((bb->read_index) % bb->bb_size), ((bb->write_index) % bb->bb_size));
-    // printf("write_index: %i \n", bb->write_index);
     bb->arr_pointer[bb->write_index] = fd;
     V(bb->read_sem);
 }
