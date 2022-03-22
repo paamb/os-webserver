@@ -7,15 +7,6 @@
 
 // gcc -pthread -o sem sem.c
 
-typedef struct arg_struct
-{
-    char id[2];
-    SEM *semaphore;
-} arg_struct;
-
-pthread_t tid[2];
-int counter;
-
 void P(SEM *sem)
 {
     pthread_mutex_lock(&sem->lock);
@@ -73,39 +64,3 @@ int sem_del(SEM *sem)
     free(sem);
     return return_val;
 }
-
-void *doSomething(void *args)
-{
-    arg_struct *arguments;
-    arguments = (arg_struct *)args;
-    P(arguments->semaphore);
-    printf("Start, id: %s \n", arguments->id);
-    for (int i = 0; i < 0xFFFFFFF; i++)
-        ;
-    printf("Finished :D, id: %s \n", arguments->id);
-    V(arguments->semaphore);
-
-    return NULL;
-}
-
-// int main(void)
-// {
-//     SEM *semaphore = sem_init(2);
-//     pthread_t thread_id_one, thread_id_two, thread_id_three;
-
-//     arg_struct argsone = {.id = "1", .semaphore = semaphore};
-//     arg_struct argstwo = {.id = "2", .semaphore = semaphore};
-//     arg_struct argsthree = {.id = "3", .semaphore = semaphore};
-
-//     pthread_create(&thread_id_one, NULL, doSomething, (void *)&argsone);
-//     pthread_create(&thread_id_two, NULL, doSomething, (void *)&argstwo);
-//     pthread_create(&thread_id_three, NULL, doSomething, (void *)&argsthree);
-
-//     pthread_join(thread_id_one, NULL);
-//     pthread_join(thread_id_two, NULL);
-//     pthread_join(thread_id_three, NULL);
-
-//     sem_del(semaphore);
-
-//     return 0;
-// }

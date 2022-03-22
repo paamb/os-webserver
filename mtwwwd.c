@@ -29,17 +29,6 @@ void error(const char *msg)
     exit(1);
 }
 
-// Funksjon som burde fungerer, men gjorde det ikke så bare gjorde det i main istedenfor
-void assign_absolutPath(char *absolutePath, char dirPath[], char webpagePath[])
-{
-    absolutePath = malloc(strlen(dirPath) + strlen(webpagePath) + 1);
-    strcpy(absolutePath, dirPath);
-    strcat(absolutePath, webpagePath);
-    printf("%s", absolutePath);
-    printf("%p", &absolutePath);
-}
-
-
 void read_file(char *absolute_path, char *body_buffer){
     FILE *fp;
     fp = fopen(absolute_path, "r");
@@ -61,7 +50,6 @@ void *work(void *args){
     pid_t x = syscall(__NR_gettid);
     while(1){
         int connectsockfd = bb_get(bbuffer);
-        printf("CONNECTED %d \n", x);
         n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
         char *phc;
         phc = strtok(request_buffer, " "); // Cycling through GET
@@ -82,6 +70,7 @@ void *work(void *args){
         n = write(connectsockfd, msg, strlen(msg));
         if (n < 0)
             error("ERROR writing to socket");
+        printf("Connected!\n");
         close(connectsockfd);
     }
 }
@@ -93,20 +82,18 @@ int main(int argc, char *argv[])
     int num_threads = atoi(argv[3]);
     int buffer_slots = atoi(argv[4]);
     BNDBUF *bbuffer = bb_init(buffer_slots);
-    
 
-    printf("Running in directory: %s\n %d", dirPath, port);
+    printf("Running in directory: %s\n", dirPath);
 
-    // Sockfd - Socketen som blir opprettet
+    // Sockfd - Socketen to be made
     int sockfd, connectsockfd;
 
-    // socklengt type for connection
     // Size of address
     socklen_t clilen;
 
     struct sockaddr_in serv_addr, cli_addr;
-    // struct sockaddr_iN
-    // IPV4
+
+    // IPV4 
     sockfd = socket(PF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
         error("Error opening socket");
@@ -142,21 +129,19 @@ int main(int argc, char *argv[])
     }
 
 
-
+    printf("Listening...\n");
     while (1)
     {
         // Finds current directory
         bzero(request_buffer, sizeof(request_buffer));
-
         clilen = sizeof(cli_addr);
+        
         connectsockfd = accept(sockfd, (struct sockaddr *)&cli_addr,
                                &clilen);
         if (connectsockfd < 0)
             error("ERROR on accept");
 
         bb_add(bbuffer, connectsockfd);
-        pid_t e = syscall(__NR_gettid);
-        printf("MAIN WRITER %d \n", e);
     }
     for (int i = 0; i < num_threads; i++){
         pthread_join(thr[i], NULL);
