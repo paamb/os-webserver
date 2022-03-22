@@ -62,6 +62,7 @@ void display_directory_path()
 void read_file(char *absolute_path, char *body_buffer){
     FILE *fp;
     fp = fopen(absolute_path, "r");
+    printf("Absolute path: %s,  Body_buffer: %s \n", absolute_path, body_buffer);
     if (fp == NULL)
     {
         // fclose(fp);
@@ -80,28 +81,32 @@ void read_file(char *absolute_path, char *body_buffer){
 
 void work(BNDBUF *bbuffer){
     //Blir stuck her om det ikke gaar
-    pid_t x = syscall(__NR_gettid);
+    // pid_t x = syscall(__NR_gettid);
     // printf("TRÅÅÅÅÅD %d\n", x);
+    int n;
     while(1){
+        printf("Conna\n");
         int connectsockfd = bb_get(bbuffer);
-        x = syscall(__NR_gettid);
-        printf("CONNECT TÅÅÅÅÅÅÅÅÅ %d\n", x);
-        int n;
+        printf("conna2\n");
+        // bzero(body_buffer, sizeof(body_buffer));
+        // x = syscall(__NR_gettid);
+        // printf("CONNECT TÅÅÅÅÅÅÅÅÅ %d\n", x);
+        
         n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
-
+        printf("requestBuffer %s \n", request_buffer);
         // Denne bør gjøres litt bedre. Skal ikke alltid endres. "malloc-koden" under blir stygg.
         char *phc;
         phc = strtok(request_buffer, " "); // Cycling through GET
         phc = strtok(NULL, " ");   // phc is now the given URL
 
         // Kjørte requests innimellom og da var phc null. Fikk derfor segfault naar man prøvde aa malloc noe med lengde null.
+        // printf("Absolute path: %s,  Body_buffer: %s \n", absolute_path, body_buffer);
         if(phc != NULL){
             // free(absolute_path);
             absolute_path = malloc(strlen(dirPath) + strlen(phc) + 1);
             strcpy(absolute_path, dirPath);
             strcat(absolute_path, phc);
         }
-
         read_file(absolute_path, body_buffer);
         snprintf(msg, sizeof(msg),
         "HTTP/0.9 200 OK\n"
@@ -183,7 +188,6 @@ int main(int argc, char *argv[])
     pthread_t thr[num_threads];
     for (int i = 0; i < num_threads; i++){
         pthread_create(&thr[i], NULL, work, (void *)bbuffer);
-        pthread_join(&thr[i], NULL);
     }
 
 
@@ -200,5 +204,8 @@ int main(int argc, char *argv[])
             error("ERROR on accept");
 
         bb_add(bbuffer, connectsockfd);
+    }
+    for (int i = 0; i < num_threads; i++){
+        pthread_join(&thr[i], NULL);
     }
 }
