@@ -8,11 +8,22 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+#include "bbuffer.h"
+#include "sem.h"
+
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <sys/syscall.h>
+
 #define DEFAULT_PORT 8000
 #define MAXREQ (4096 * 1024)
 
 // Oppretter max lengde paa buffrene
 char request_buffer[MAXREQ], msg[MAXREQ], body_buffer[MAXREQ];
+char *absolute_path;
+char *dirPath;
 void error(const char *msg)
 {
     perror(msg);
@@ -67,11 +78,62 @@ void read_file(char *absolute_path, char *body_buffer){
     // printf("\n\n\n%s", body_buffer);
 }
 
+void work(BNDBUF *bbuffer){
+    //Blir stuck her om det ikke gaar
+    pid_t x = syscall(__NR_gettid);
+    // printf("TRÅÅÅÅÅD %d\n", x);
+    while(1){
+        int connectsockfd = bb_get(bbuffer);
+        x = syscall(__NR_gettid);
+        printf("CONNECT TÅÅÅÅÅÅÅÅÅ %d\n", x);
+        int n;
+        n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
+
+        // Denne bør gjøres litt bedre. Skal ikke alltid endres. "malloc-koden" under blir stygg.
+        char *phc;
+        phc = strtok(request_buffer, " "); // Cycling through GET
+        phc = strtok(NULL, " ");   // phc is now the given URL
+
+        // Kjørte requests innimellom og da var phc null. Fikk derfor segfault naar man prøvde aa malloc noe med lengde null.
+        if(phc != NULL){
+            // free(absolute_path);
+            absolute_path = malloc(strlen(dirPath) + strlen(phc) + 1);
+            strcpy(absolute_path, dirPath);
+            strcat(absolute_path, phc);
+        }
+
+        read_file(absolute_path, body_buffer);
+        snprintf(msg, sizeof(msg),
+        "HTTP/0.9 200 OK\n"
+        "Content-Type: text/html\n"
+        "Content-Length: %d\n\n%s",
+        strlen(body_buffer), body_buffer);
+
+        n = write(connectsockfd, msg, strlen(msg));
+        if (n < 0)
+            error("ERROR writing to socket");
+        close(connectsockfd);
+    }
+}
+
+// void make_worker_threads(BNDBUF bbuffer, int num_threads){
+//     pthread_t thr[num_threads];
+//     for (int i = 0; i < num_threads; i++){
+//         pthread_create(&thr[i], NULL, work, (void *)bbuffer);
+//     }
+// }
+
+
+
 int main(int argc, char *argv[])
 {
-    char *dirPath = argv[1];
+    dirPath = argv[1];
+    printf("YOOOOOOOOOOOOO\n");
     int port = atoi(argv[2]);
-    char *absolute_path;
+    int num_threads = atoi(argv[3]);
+    int buffer_slots = atoi(argv[4]);
+    BNDBUF *bbuffer = bb_init(buffer_slots);
+    
 
     printf("Running in directory: %s\n %d", dirPath, port);
     // printf("Running on port: %s", argv[2]);
@@ -87,7 +149,6 @@ int main(int argc, char *argv[])
     socklen_t clilen;
 
     struct sockaddr_in serv_addr, cli_addr;
-    int n;
     // struct sockaddr_iN
     // IPV4
     sockfd = socket(PF_INET, SOCK_STREAM, 0);
@@ -115,9 +176,17 @@ int main(int argc, char *argv[])
     {
         error("ERROR on binding");
     }
-
+    
     // listen(sockfd, 5);
     listen(sockfd, 1);
+    
+    pthread_t thr[num_threads];
+    for (int i = 0; i < num_threads; i++){
+        pthread_create(&thr[i], NULL, work, (void *)bbuffer);
+        pthread_join(&thr[i], NULL);
+    }
+
+
 
     while (1)
     {
@@ -129,32 +198,7 @@ int main(int argc, char *argv[])
                                &clilen);
         if (connectsockfd < 0)
             error("ERROR on accept");
-        n = read(connectsockfd, request_buffer, sizeof(request_buffer) - 1);
 
-
-        // Denne bør gjøres litt bedre. Skal ikke alltid endres. "malloc-koden" under blir stygg.
-        char *phc;
-        phc = strtok(request_buffer, " "); // Cycling through GET
-        phc = strtok(NULL, " ");   // phc is now the given URL
-
-        // Kjørte requests innimellom og da var phc null. Fikk derfor segfault naar man prøvde aa malloc noe med lengde null.
-        if(phc != NULL){
-            // free(absolute_path);
-            absolute_path = malloc(strlen(dirPath) + strlen(phc) + 1);
-            strcpy(absolute_path, dirPath);
-            strcat(absolute_path, phc);
-        }
-
-        read_file(absolute_path, body_buffer);
-        snprintf(msg, sizeof(msg),
-        "HTTP/0.9 200 OK\n"
-        "Content-Type: text/html\n"
-        "Content-Length: %d\n\n%s",
-        strlen(body_buffer), body_buffer);
-
-        n = write(connectsockfd, msg, strlen(msg));
-        if (n < 0)
-            error("ERROR writing to socket");
-        close(connectsockfd);
+        bb_add(bbuffer, connectsockfd);
     }
 }

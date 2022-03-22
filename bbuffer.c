@@ -83,25 +83,25 @@ void *write_value(void *args){
 }
 
 
-int main(void) {
-    BNDBUF *bbuffer = bb_init(3);
-    pthread_t thread_id_one, thread_id_two, thread_id_three;
+// int main(void) {
+//     BNDBUF *bbuffer = bb_init(3);
+//     pthread_t thread_id_one, thread_id_two, thread_id_three;
 
-    arg_struct write_first = {.bbuffer = bbuffer, .write_value = 69};
+//     arg_struct write_first = {.bbuffer = bbuffer, .write_value = 69};
 
     
-    pthread_create(&thread_id_one, NULL, read_value, (void *)bbuffer);
-    for (int i = 0; i < 0xFFFFFFF; i++)
-        ;
-    printf("bfefe \n");
-    pthread_create(&thread_id_two, NULL, write_value, (void *)&write_first);
-    for (int i = 0; i < 0xFFFFFFF; i++);
+//     pthread_create(&thread_id_one, NULL, read_value, (void *)bbuffer);
+//     for (int i = 0; i < 0xFFFFFFF; i++)
+//         ;
+//     printf("bfefe \n");
+//     pthread_create(&thread_id_two, NULL, write_value, (void *)&write_first);
+//     for (int i = 0; i < 0xFFFFFFF; i++);
 
-    pthread_create(&thread_id_one, NULL, read_value, (void *)bbuffer);
-    printf("before waiting \n");
-    pthread_join(thread_id_two, NULL);
-    printf("after waiting \n");
-    pthread_join(thread_id_one, NULL);
+//     pthread_create(&thread_id_one, NULL, read_value, (void *)bbuffer);
+//     printf("before waiting \n");
+//     pthread_join(thread_id_two, NULL);
+//     printf("after waiting \n");
+//     pthread_join(thread_id_one, NULL);
 
-    //bb_del(bbuffer);
-}
+//     //bb_del(bbuffer);
+// }
