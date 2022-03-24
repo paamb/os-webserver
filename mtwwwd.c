@@ -6,8 +6,6 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <string.h>
 #include <pthread.h>
 #include "bbuffer.h"
 #include "sem.h"
