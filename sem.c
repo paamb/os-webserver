@@ -5,13 +5,12 @@
 #include <unistd.h>
 #include "sem.h"
 
-// gcc -pthread -o sem sem.c
-
 void P(SEM *sem)
 {
     pthread_mutex_lock(&sem->lock);
 
-    while(sem->counter <= 0) {
+    while (sem->counter <= 0)
+    {
         pthread_cond_wait(&sem->condition, &sem->lock);
     }
     sem->counter--;
@@ -54,10 +53,12 @@ int sem_del(SEM *sem)
 {
     int return_val = 0;
 
-    if (pthread_mutex_destroy(&sem->lock) != 0) {
+    if (pthread_mutex_destroy(&sem->lock) != 0)
+    {
         return_val = -1;
     }
-    if (pthread_cond_destroy(&sem->condition) != 0) {
+    if (pthread_cond_destroy(&sem->condition) != 0)
+    {
         return_val = -1;
     }
 
